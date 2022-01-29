@@ -1,5 +1,11 @@
 import { Expose } from 'class-transformer';
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  ManyToMany,
+  OneToMany,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { DB_TABLE, ENUMTypeColumnEntity } from '../common/enum/database.enum';
 import { SERIALIZE_GROUP } from '../common/enum/serialization-group.enum';
 import { ExtendedEntity } from '../common/extended-entity';

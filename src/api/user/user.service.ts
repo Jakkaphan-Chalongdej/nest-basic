@@ -13,9 +13,11 @@ import {
 import { EnumDirectoryName } from '../../shared/enum/multer.enum';
 import { CreateUserDto } from './dto/create-user.dto';
 import * as bcrypt from 'bcrypt';
-import { Connection, QueryRunner } from 'typeorm';
+import { Brackets, Connection, QueryRunner } from 'typeorm';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { RoleRepository } from '../../database/repository/role.repository';
+import { RoleEntity } from '../../database/entities/role.entity';
+import { getStartDateAndEndDate } from '../../shared/helper/date-helper';
 
 @Injectable()
 export class UserService extends CrudService<UserEntity> {
@@ -29,6 +31,19 @@ export class UserService extends CrudService<UserEntity> {
   async createUser(data: CreateUserDto) {
     const queryRunner = this.connection.createQueryRunner();
     await queryRunner.connect();
+
+    const _user = await this.repository
+      .createQueryBuilder('user')
+      .where('user.username = :username', { username: data.username })
+      .andWhere(
+        new Brackets((qb) => {
+          if (data.username) {
+            qb.andWhere('user.isDelete = :isDelete', { isDelete: false });
+          }
+        }),
+      )
+      .getOne();
+
     const _alreadyAdmin = await this.repository.findOne({
       where: {
         isDelete: false,
@@ -40,18 +55,24 @@ export class UserService extends CrudService<UserEntity> {
     }
     const salt = await bcrypt.genSalt();
     data.password = await bcrypt.hashSync(data.password, salt);
-
-    return await this.createTableUser(queryRunner, data);
+    const user = new UserEntity();
+    return await this.createTableUser(queryRunner, user, data);
   }
 
-  async createTableUser(queryRunner: QueryRunner, data: CreateUserDto) {
-    const role = await this.roleRepository.findOne({
-      where: { id: data.role, isDelete: false },
-    });
-    if (!role) {
-      throw new NotFoundException(ENUMErrorMessages.NOTFOUND_ROLE);
+  async createTableUser(
+    queryRunner: QueryRunner,
+    user: UserEntity,
+    data: CreateUserDto,
+  ) {
+    let role: RoleEntity;
+    if (data.role) {
+      role = await this.roleRepository.findOne({
+        where: { id: data.role, isDelete: false },
+      });
+      if (!role) {
+        throw new NotFoundException(ENUMErrorMessages.NOTFOUND_ROLE);
+      }
     }
-    const user = new UserEntity();
     user.fullName = data.fullName;
     user.username = data.username;
     user.phone = data.phone;
@@ -80,6 +101,6 @@ export class UserService extends CrudService<UserEntity> {
     } else {
       data.password = user.password;
     }
-    return await this.createTableUser(queryRunner, data);
+    return await this.createTableUser(queryRunner, user, data);
   }
 }
