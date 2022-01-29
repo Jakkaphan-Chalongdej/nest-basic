@@ -21,5 +21,5 @@ export class RoleEntity extends ExtendedEntity {
 
   @OneToMany(() => UserEntity, (user) => user.id, { nullable: true })
   @Expose({ groups: [SERIALIZE_GROUP.GROUP_ALL_ROLE] })
-  User: UserEntity;
+  user: UserEntity;
 }
