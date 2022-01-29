@@ -30,9 +30,9 @@ import { PaginationResponse } from '../../shared/interface/pagination-response.i
 
 @Controller('v1/role')
 @ApiTags('role')
-@UseGuards(JwtAuthGuard)
+// @UseGuards(JwtAuthGuard)
 @Roles(ENUMUserType.ADMIN, ENUMUserType.SUPER_ADMIN)
-@ApiBearerAuth()
+// @ApiBearerAuth()
 @UseInterceptors(ClassSerializerInterceptor)
 export class RoleController {
   constructor(private readonly roleService: RoleService) {}
@@ -48,10 +48,13 @@ export class RoleController {
   @Get()
   async findAll(@Query() qs: SearchQueryStringDto) {
     const [_role, cnt] = await this.roleService.findAndCount({
+      join: { alias: 'role' },
       where: (qb) => {
-        qb.where('"isDelete" = :isDelete', { isDelete: false });
+        qb.where('role.isDelete = :isDelete', { isDelete: false });
         if (qs.search) {
-          qb.andWhere('"name" ILike :name', { name: `%${qs.search.trim()}%` });
+          qb.andWhere('role.name ILike :name', {
+            name: `%${qs.search.trim()}%`,
+          });
         }
       },
       order: { id: qs.orderby },
