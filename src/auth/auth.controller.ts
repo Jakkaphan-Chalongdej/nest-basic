@@ -1,17 +1,20 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   Post,
   UnauthorizedException,
+  UseGuards,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { SignInDto } from './dto/sign-in.dto';
 import { JWT_TYPE } from './enum/jwt.enum';
 import { IRespLogin } from './interface/auth.interface';
 import { IJwtPayload } from './interface/jwt.interface';
+import { JwtAuthGuard } from './jwt-auth.guard';
 
 @Controller('auth')
 @ApiTags('Auth')
@@ -26,10 +29,11 @@ export class AuthController {
   async login(@Body() signInDto: SignInDto) {
     const { username, password } = signInDto;
     const user = await this.authService.validateUser(username, password);
-    if (!user) throw new UnauthorizedException();
+    if (!user) {
+      throw new UnauthorizedException();
+    }
     const payload: IJwtPayload = {
       uuid: user.uuid,
-      role: user.role.name,
     };
     const acToken = this.jwtService.sign({
       ...payload,
@@ -39,10 +43,16 @@ export class AuthController {
     const _resp: IRespLogin = {
       userInfo: {
         fullName: user.fullName,
-        role: user.role.name,
       },
       accessToken: acToken,
     };
     return _resp;
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Get('test-token')
+  async testToken() {
+    return 'Test token is Success';
   }
 }
